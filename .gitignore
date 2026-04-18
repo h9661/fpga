@@ -1,0 +1,13 @@
+# GHDL artifacts
+*.o
+*.cf
+work-obj*.cf
+*-obj*.cf
+e~*.o
+
+# Waveforms
+*.vcd
+*.ghw
+
+# OS
+.DS_Store

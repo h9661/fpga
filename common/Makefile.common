@@ -1,0 +1,51 @@
+# 모든 주차 Makefile이 include하는 공통 규칙.
+# 주차 Makefile은 MODULES 변수를 정의해야 한다. 예: MODULES := alu mux4 priority_encoder
+
+GHDL      ?= ghdl
+GHDL_FLAGS ?= --std=08 --workdir=work
+WORK      := work
+
+RTL_DIR := rtl
+TB_DIR  := tb
+
+RTL_SRCS := $(wildcard $(RTL_DIR)/*.vhd)
+TB_SRCS  := $(foreach m,$(MODULES),$(TB_DIR)/tb_$(m).vhd)
+
+.PHONY: all test clean wave
+
+all: test
+
+$(WORK):
+	mkdir -p $(WORK)
+
+# 모든 소스를 분석
+analyze: | $(WORK)
+	$(GHDL) -a $(GHDL_FLAGS) $(RTL_SRCS) $(TB_SRCS)
+
+# 각 모듈에 대해 elaborate + run.
+# testbench 엔티티 이름은 tb_<module> 가정.
+test: analyze
+	@set -e; \
+	failed=0; \
+	for m in $(MODULES); do \
+		echo "=== Running tb_$$m ==="; \
+		$(GHDL) -e $(GHDL_FLAGS) tb_$$m; \
+		if $(GHDL) -r $(GHDL_FLAGS) tb_$$m --assert-level=error; then \
+			echo "  PASS: tb_$$m"; \
+		else \
+			echo "  FAIL: tb_$$m"; \
+			failed=1; \
+		fi; \
+	done; \
+	if [ $$failed -ne 0 ]; then echo "*** SOME TESTS FAILED ***"; exit 1; fi; \
+	echo "*** ALL TESTS PASSED ***"
+
+# 특정 모듈 파형 저장: make wave MODULE=alu
+wave: analyze
+	@if [ -z "$(MODULE)" ]; then echo "Usage: make wave MODULE=<name>"; exit 1; fi
+	$(GHDL) -e $(GHDL_FLAGS) tb_$(MODULE)
+	$(GHDL) -r $(GHDL_FLAGS) tb_$(MODULE) --vcd=tb_$(MODULE).vcd || true
+	gtkwave tb_$(MODULE).vcd &
+
+clean:
+	rm -rf $(WORK) *.cf *.vcd *.ghw e~*.o
