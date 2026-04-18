@@ -104,7 +104,42 @@ begin
             report "tx_line should be idle after send"
             severity error;
 
-        report "tb_uart_tx: PASS (0x55)";
+        -- === 다중 바이트 테스트: 0x00 ~ 0xFF 전부 ===
+        for v in 0 to 255 loop
+            -- 이전 송신 완료까지 대기
+            if tx_busy = '1' then
+                wait until tx_busy = '0';
+                wait for 2 * CLK_PER;
+            end if;
+
+            tx_data <= std_logic_vector(to_unsigned(v, 8));
+            tx_send <= '1';
+            wait until rising_edge(clk);
+            tx_send <= '0';
+
+            -- busy 확인
+            wait for CLK_PER;
+            assert tx_busy = '1'
+                report "multi v=" & integer'image(v) & ": tx_busy not asserted"
+                severity error;
+
+            -- start bit 감지 (IDLE pre-drive로 이미 '0'일 수 있어 guard 필요)
+            if tx_line /= '0' then
+                wait until tx_line = '0';
+            end if;
+            rx_byte(tx_line, rx);
+            assert rx = std_logic_vector(to_unsigned(v, 8))
+                report "multi v=" & integer'image(v) &
+                       ": rx mismatch, got=" & integer'image(to_integer(unsigned(rx)))
+                severity error;
+        end loop;
+
+        -- 송신 완료까지 정리
+        if tx_busy = '1' then
+            wait until tx_busy = '0';
+        end if;
+
+        report "tb_uart_tx: PASS (256 bytes)";
         sim_done <= true;
         wait;
     end process;
