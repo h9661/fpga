@@ -86,7 +86,9 @@ begin
             report "tx_busy should assert after tx_send"
             severity error;
 
-        wait until tx_line = '0';
+        if tx_line /= '0' then
+            wait until tx_line = '0';
+        end if;
         rx_byte(tx_line, rx);
         assert rx = x"55"
             report "rx mismatch for 0x55: got=" & integer'image(to_integer(unsigned(rx)))

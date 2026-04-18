@@ -1,7 +1,5 @@
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
-
 entity uart_tx is
     generic (
         CLK_FREQ_HZ : positive := 100_000_000;
@@ -44,8 +42,9 @@ begin
                         baud_cnt <= 0;
                         bit_idx  <= 0;
                         if tx_send = '1' then
-                            shreg <= tx_data;
-                            state <= START;
+                            shreg  <= tx_data;
+                            state  <= START;
+                            line_r <= '0';  -- start bit pre-drive: covers first cycle of start bit
                         end if;
 
                     when START =>
