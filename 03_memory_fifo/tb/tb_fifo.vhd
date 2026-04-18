@@ -139,7 +139,114 @@ begin
             report "should not be full after reads"
             severity error;
 
-        report "tb_fifo: PASS (basic)";
+        -- === 시나리오 3: Overflow 시도 — 가득 찬 상태에서 wr_en 시 무시되고 count 불변 ===
+        for i in 0 to DEPTH-1 loop
+            write_value(clk, wr_en, din, i + 100);
+        end loop;
+        tick(1);
+        assert full = '1' report "pre-overflow: full=1 expected" severity error;
+
+        for i in 0 to 4 loop
+            din <= std_logic_vector(to_unsigned(255, WIDTH));
+            wr_en <= '1';
+            wait until rising_edge(clk);
+            wait for 1 ns;
+            assert to_integer(unsigned(count)) = DEPTH
+                report "overflow: count should stay at DEPTH"
+                severity error;
+        end loop;
+        wr_en <= '0';
+
+        for i in 0 to DEPTH-1 loop
+            read_value(clk, rd_en, dout, i + 100);
+        end loop;
+        tick(1);
+        assert empty = '1' report "after full-drain: empty=1 expected" severity error;
+
+        -- === 시나리오 4: Underflow 시도 — 비어 있는 상태에서 rd_en 시 무시되고 count 불변 ===
+        for i in 0 to 4 loop
+            rd_en <= '1';
+            wait until rising_edge(clk);
+            wait for 1 ns;
+            assert to_integer(unsigned(count)) = 0
+                report "underflow: count should stay at 0"
+                severity error;
+        end loop;
+        rd_en <= '0';
+
+        -- === 시나리오 5: Almost-full / almost-empty 플래그 ===
+        for i in 0 to DEPTH-2 loop
+            write_value(clk, wr_en, din, i);
+        end loop;
+        tick(1);
+        assert almost_full = '1'
+            report "almost_full should assert at count=DEPTH-1"
+            severity error;
+        assert full = '0'
+            report "not quite full yet"
+            severity error;
+
+        write_value(clk, wr_en, din, 99);
+        tick(1);
+        assert full = '1' report "full after one more" severity error;
+
+        for i in 0 to DEPTH-1 loop
+            rd_en <= '1';
+            wait until rising_edge(clk);
+            wait for 1 ns;
+        end loop;
+        rd_en <= '0';
+        tick(1);
+        assert empty = '1' report "fully drained" severity error;
+        assert almost_empty = '1' report "almost_empty at count=0" severity error;
+
+        write_value(clk, wr_en, din, 42);
+        tick(1);
+        assert almost_empty = '1'
+            report "almost_empty should assert at count=1"
+            severity error;
+        assert empty = '0'
+            report "not empty anymore"
+            severity error;
+
+        write_value(clk, wr_en, din, 43);
+        tick(1);
+        assert almost_empty = '0'
+            report "almost_empty should deassert at count=2"
+            severity error;
+
+        for i in 1 to 2 loop
+            rd_en <= '1';
+            wait until rising_edge(clk);
+            wait for 1 ns;
+        end loop;
+        rd_en <= '0';
+        tick(1);
+
+        -- === 시나리오 6: 동시 wr/rd — count 불변 ===
+        for i in 0 to DEPTH/2 - 1 loop
+            write_value(clk, wr_en, din, i + 50);
+        end loop;
+        tick(1);
+        assert to_integer(unsigned(count)) = DEPTH/2
+            report "pre-concurrent: count should be DEPTH/2"
+            severity error;
+
+        for i in 0 to 4 loop
+            din <= std_logic_vector(to_unsigned(i + 200, WIDTH));
+            wr_en <= '1';
+            rd_en <= '1';
+            wait until rising_edge(clk);
+            wait for 1 ns;
+            assert to_integer(unsigned(count)) = DEPTH/2
+                report "concurrent wr+rd: count should remain DEPTH/2, got=" &
+                       integer'image(to_integer(unsigned(count)))
+                severity error;
+        end loop;
+        wr_en <= '0';
+        rd_en <= '0';
+
+        report "tb_fifo: PASS (all)";
         sim_done <= true;
         wait;
     end process;
