@@ -1,3 +1,3 @@
-MODULES := alu mux4
+MODULES := alu mux4 priority_encoder
 
 include ../common/Makefile.common
