@@ -11,3 +11,6 @@ e~*.o
 
 # OS
 .DS_Store
+
+# GHDL elaborated executables (week-level, per-module)
+/[0-9][0-9]_*/tb_*

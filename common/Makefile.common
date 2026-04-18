@@ -11,7 +11,7 @@ TB_DIR  := tb
 RTL_SRCS := $(wildcard $(RTL_DIR)/*.vhd)
 TB_SRCS  := $(foreach m,$(MODULES),$(TB_DIR)/tb_$(m).vhd)
 
-.PHONY: all test clean wave
+.PHONY: all analyze test clean wave
 
 all: test
 
@@ -25,12 +25,11 @@ analyze: | $(WORK)
 # 각 모듈에 대해 elaborate + run.
 # testbench 엔티티 이름은 tb_<module> 가정.
 test: analyze
-	@set -e; \
-	failed=0; \
+	@failed=0; \
 	for m in $(MODULES); do \
 		echo "=== Running tb_$$m ==="; \
-		$(GHDL) -e $(GHDL_FLAGS) tb_$$m; \
-		if $(GHDL) -r $(GHDL_FLAGS) tb_$$m --assert-level=error; then \
+		if $(GHDL) -e $(GHDL_FLAGS) tb_$$m && \
+		   $(GHDL) -r $(GHDL_FLAGS) tb_$$m --assert-level=error; then \
 			echo "  PASS: tb_$$m"; \
 		else \
 			echo "  FAIL: tb_$$m"; \
@@ -49,3 +48,4 @@ wave: analyze
 
 clean:
 	rm -rf $(WORK) *.cf *.vcd *.ghw e~*.o
+	$(foreach m,$(MODULES),rm -f tb_$(m);)
