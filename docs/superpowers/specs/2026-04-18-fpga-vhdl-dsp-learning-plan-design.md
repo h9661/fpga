@@ -43,7 +43,7 @@
 | 툴 | 역할 | 설치 |
 |---|---|---|
 | **GHDL** | VHDL-2008 컴파일러·시뮬레이터 | `brew install ghdl` |
-| **GTKWave** | 파형 뷰어 (`.vcd`/`.ghw`) | `brew install gtkwave` |
+| **Surfer** | 파형 뷰어 (`.vcd`/`.fst`/`.ghw`) | `brew install --cask surfer` |
 | **Make** | 빌드·시뮬레이션 자동화 | macOS 기본 포함 |
 
 ### 보조 (필요 시 도입)
@@ -53,7 +53,7 @@
 
 ### 선택 근거
 
-상용 툴(ModelSim/Questa)은 학습 단계에 불필요하고 macOS 지원도 빈약하다. GHDL + GTKWave는 VHDL-2008 기준 업계 호환이며 전부 오픈소스라 재현성이 높다. Makefile 한 장으로 "이 코드를 어떻게 검증했는가"를 설명할 수 있다는 점이 면접·과제 제출 측면에서도 유리하다.
+상용 툴(ModelSim/Questa)은 학습 단계에 불필요하고 macOS 지원도 빈약하다. GHDL + Surfer는 VHDL-2008 기준 업계 호환이며 전부 오픈소스라 재현성이 높다. (GTKWave는 2025-10-29부로 Homebrew에서 disabled — 후속 뷰어로 활발히 개발 중인 Surfer를 채택.) Makefile 한 장으로 "이 코드를 어떻게 검증했는가"를 설명할 수 있다는 점이 면접·과제 제출 측면에서도 유리하다.
 
 ## 3. 레포 구조
 
@@ -141,7 +141,7 @@ NN_topic/
 
 1. **Self-checking testbench만 인정.** 사람이 파형을 눈으로 확인하는 방식은 검증으로 치지 않는다. `assert` 또는 PASS/FAIL 출력이 반드시 있어야 한다.
 2. **Golden model은 Python으로.** DSP 블록은 NumPy/scipy로 기준값을 생성해 `.mem`/`.txt`로 덤프하고, VHDL testbench가 읽어서 비교한다.
-3. **파형은 디버깅용**, 검증은 `assert`로. GTKWave는 "왜 틀렸지?"를 볼 때만 연다.
+3. **파형은 디버깅용**, 검증은 `assert`로. Surfer는 "왜 틀렸지?"를 볼 때만 연다.
 
 ### 각 testbench 필수 요소
 
@@ -154,7 +154,7 @@ NN_topic/
 ### 루트 Makefile
 
 - `make test` — 전 주차 testbench 실행. 하나라도 FAIL이면 `exit 1`.
-- `make wave WEEK=05` — 해당 주차의 파형을 GTKWave로 연다.
+- `make wave WEEK=05` — 해당 주차의 파형을 Surfer로 연다.
 - `make clean` — 산출 바이너리 제거.
 
 ## 6. 참고 자료

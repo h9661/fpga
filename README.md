@@ -5,10 +5,16 @@
 ## 요구 사항
 
 - GHDL (VHDL-2008 지원 버전)
-- GTKWave
+- Surfer (파형 뷰어, GTKWave 대체)
 - GNU Make
 
-macOS: `brew install ghdl gtkwave`
+macOS:
+```
+brew install ghdl
+brew install --cask surfer
+```
+
+설치 없이 쓰려면 https://app.surfer-project.org 에 `.vcd` 파일을 드래그해도 된다.
 
 ## 실행
 

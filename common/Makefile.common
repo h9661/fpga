@@ -44,7 +44,7 @@ wave: analyze
 	@if [ -z "$(MODULE)" ]; then echo "Usage: make wave MODULE=<name>"; exit 1; fi
 	$(GHDL) -e $(GHDL_FLAGS) tb_$(MODULE)
 	$(GHDL) -r $(GHDL_FLAGS) tb_$(MODULE) --vcd=tb_$(MODULE).vcd || true
-	gtkwave tb_$(MODULE).vcd &
+	surfer tb_$(MODULE).vcd &
 
 clean:
 	rm -rf $(WORK) *.cf *.vcd *.ghw e~*.o

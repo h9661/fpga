@@ -6,7 +6,7 @@
 
 **Architecture:** 각 모듈은 `rtl/`에 설계, `tb/`에 testbench로 분리한다. 모든 검증은 `ghdl`로 자동 실행되며 `assert`로 PASS/FAIL을 판정한다. 주차 루트에 `Makefile`을 두어 `make test` 한 줄로 전 testbench를 실행한다.
 
-**Tech Stack:** VHDL-2008, GHDL (mcode backend), GTKWave, GNU Make, macOS Homebrew.
+**Tech Stack:** VHDL-2008, GHDL (mcode backend), Surfer (GTKWave 후속), GNU Make, macOS Homebrew.
 
 ---
 
@@ -51,21 +51,22 @@ fpga/
 - Create: `/Users/chan-uhyeon/Programming/fpga/Makefile`
 - Create: `/Users/chan-uhyeon/Programming/fpga/common/Makefile.common`
 
-- [ ] **Step 1: GHDL과 GTKWave 설치**
+- [ ] **Step 1: GHDL과 Surfer 설치**
 
 Run:
 ```bash
-brew install ghdl gtkwave
+brew install ghdl
+brew install --cask surfer
 ```
 Expected: 설치 완료. `ghdl --version`이 버전(예: `GHDL 4.x.x`)을 출력.
 
-GHDL이 이미 있다면 넘어간다. 버전이 3.x 이하라도 VHDL-2008 지원되면 충분.
+GHDL이 이미 있다면 넘어간다. 버전이 3.x 이하라도 VHDL-2008 지원되면 충분. (GTKWave는 2025-10-29부 Homebrew disabled — Surfer로 대체.)
 
 - [ ] **Step 2: 설치 검증**
 
 Run:
 ```bash
-ghdl --version && gtkwave --version | head -1
+ghdl --version && surfer --version
 ```
 Expected: 두 툴 모두 버전 출력.
 
@@ -139,7 +140,7 @@ wave: analyze
 	@if [ -z "$(MODULE)" ]; then echo "Usage: make wave MODULE=<name>"; exit 1; fi
 	$(GHDL) -e $(GHDL_FLAGS) tb_$(MODULE)
 	$(GHDL) -r $(GHDL_FLAGS) tb_$(MODULE) --vcd=tb_$(MODULE).vcd || true
-	gtkwave tb_$(MODULE).vcd &
+	surfer tb_$(MODULE).vcd &
 
 clean:
 	rm -rf $(WORK) *.cf *.vcd *.ghw e~*.o
@@ -182,10 +183,14 @@ Create `/Users/chan-uhyeon/Programming/fpga/README.md`:
 ## 요구 사항
 
 - GHDL (VHDL-2008 지원 버전)
-- GTKWave
+- Surfer (파형 뷰어)
 - GNU Make
 
-macOS: `brew install ghdl gtkwave`
+macOS:
+```
+brew install ghdl
+brew install --cask surfer
+```
 
 ## 실행
 
@@ -892,7 +897,7 @@ Run:
 cd /Users/chan-uhyeon/Programming/fpga/01_combinational
 make wave MODULE=alu
 ```
-Expected: GTKWave가 열리고 `a`, `b`, `op`, `y` 신호가 보인다. 창 닫고 돌아온다.
+Expected: Surfer가 열리고 `a`, `b`, `op`, `y` 신호가 보인다. 창 닫고 돌아온다.
 
 - [ ] **Step 3: 자가 체크리스트**
 
