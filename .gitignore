@@ -14,3 +14,9 @@ e~*.o
 
 # GHDL elaborated executables (week-level, per-module)
 /[0-9][0-9]_*/tb_*
+
+# Python golden-model venv (Phase 2~)
+.venv/
+
+# Generated golden vectors / coefficients (regenerated from scripts/)
+/[0-9][0-9]_*/data/
