@@ -13,8 +13,13 @@ TB_DIR  := tb
 COMMON_DIR  := ../common
 COMMON_SRCS := $(wildcard $(COMMON_DIR)/*.vhd)
 
-RTL_SRCS := $(wildcard $(RTL_DIR)/*.vhd)
-TB_SRCS  := $(foreach m,$(MODULES),$(TB_DIR)/tb_$(m).vhd)
+# 패키지(.. _pkg.vhd) 는 일반 RTL 보다 먼저 분석되어야 use 절이 통과한다.
+# wildcard 의 반환 순서는 파일시스템(APFS hash 등) 에 의존해 안정적이지 않으므로
+# 명시적으로 두 그룹을 분리하고 패키지 → RTL → TB 순으로 둔다.
+RTL_PKG_SRCS    := $(sort $(wildcard $(RTL_DIR)/*_pkg.vhd))
+RTL_NONPKG_SRCS := $(sort $(filter-out $(RTL_PKG_SRCS),$(wildcard $(RTL_DIR)/*.vhd)))
+RTL_SRCS        := $(RTL_PKG_SRCS) $(RTL_NONPKG_SRCS)
+TB_SRCS         := $(foreach m,$(MODULES),$(TB_DIR)/tb_$(m).vhd)
 
 .PHONY: all analyze test clean wave
 
