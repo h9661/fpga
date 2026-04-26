@@ -59,8 +59,14 @@ package fixed_point_pkg is
     -- Q1.15 × Q1.15 = Q2.30. numeric_std 의 signed 곱셈 그대로 wrapping.
     function q15_mul(a, b : q15_t) return q230_t;
 
-    -- Q2.30 → Q1.15. 하위 15-bit 를 round-half-up 으로 라운딩 후 saturate.
+    -- Q2.30 → Q1.15. 하위 15-bit 를 round-half-up(=toward +∞) 으로 라운딩 후 saturate.
+    --   양·음수 모두 동일 식: (x + 2^14) >> 15. arithmetic right shift = floor 이므로
+    --   양수면 ties → up, 음수면 ties → toward 0 (실용상 가장 단순한 모드).
     function q230_round_to_q15(x : q230_t) return q15_t;
+
+    -- 임의 폭 누산기(Q?.30 가정) → Q1.15 round-half-up + saturate.
+    -- 5주차 FIR / 6주차 IIR/CIC 처럼 누산기 폭이 모듈마다 다를 때 재사용한다.
+    function acc_q30_round_to_q15(x : signed) return q15_t;
 end package;
 
 package body fixed_point_pkg is
@@ -103,21 +109,39 @@ package body fixed_point_pkg is
         return a * b;
     end function;
 
-    -- Q2.30 → Q1.15: 정수 환산 = (x + 2^14) >> 15, 그 후 saturate.
-    --   "+ 2^14"  : round-half-up 을 위한 0.5 ulp.
-    --   ">> 15"   : 소수부 15 bit 만큼 잘라낸다.
+    -- Q2.30 → Q1.15. round-half-up + saturate.
+    --   부호와 무관하게 (x + 2^14) >> 15 한 식으로 처리된다.
+    --   arithmetic right shift = floor 이므로 양수에선 ties→up, 음수에선
+    --   ties→toward zero. Python 의 `(x + 2^14) >> 15` 와 비트 단위 일치.
+    --   33-bit 로 1-bit sign-extend 한 뒤 더해 +2^14 가 절대 overflow 하지 않게 한다.
     function q230_round_to_q15(x : q230_t) return q15_t is
-        variable rounded : signed(31 downto 0);
-        variable shifted : integer;
+        variable extended : signed(32 downto 0);
+        variable rounded  : signed(32 downto 0);
+        variable shifted  : integer;
     begin
-        if x >= 0 then
-            rounded := x + to_signed(2**14, 32);
+        extended := resize(x, 33);
+        rounded  := extended + to_signed(2**14, 33);
+        shifted  := to_integer(resize(shift_right(rounded, 15), 32));
+        if shifted >= 2**15 then
+            return to_signed(2**15 - 1, 16);
+        elsif shifted < -(2**15) then
+            return to_signed(-(2**15), 16);
         else
-            -- 음수일 땐 -0.5 ulp 더해 round-toward-zero halves 가 아닌
-            -- round-away-from-zero halves 를 만든다 (대칭성).
-            rounded := x - to_signed(2**14, 32);
+            return to_signed(shifted, 16);
         end if;
-        shifted := to_integer(shift_right(rounded, 15));
+    end function;
+
+    -- 일반 누산기(Q?.30) → Q1.15. 위 함수와 같은 round-half-up 식을 임의 폭으로
+    -- 확장. saturate 비교용 정수 환산은 shift 이후 magnitude 가 25-bit 이내로
+    -- 떨어지므로 32-bit integer 안에 안전하게 들어간다.
+    function acc_q30_round_to_q15(x : signed) return q15_t is
+        variable extended : signed(x'length downto 0);  -- 1-bit wider
+        variable rounded  : signed(x'length downto 0);
+        variable shifted  : integer;
+    begin
+        extended := resize(x, x'length + 1);
+        rounded  := extended + to_signed(2**14, x'length + 1);
+        shifted  := to_integer(resize(shift_right(rounded, 15), 32));
         if shifted >= 2**15 then
             return to_signed(2**15 - 1, 16);
         elsif shifted < -(2**15) then
